@@ -11,8 +11,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:restart_app/restart_app.dart';
 import 'package:users_app/global/trip_var.dart';
 import 'package:users_app/methods/manage_drivers_methods.dart';
+import 'package:users_app/methods/push_notification_service.dart';
 import 'package:users_app/models/online_nearby_drivers.dart';
 import 'package:users_app/pages/search_destination_page.dart';
 import 'package:users_app/widgets/info_dialog.dart';
@@ -298,8 +300,9 @@ class _HomePageState extends State<HomePage>
       carDetailsDriver="";
       tripStatusDisplay='Driver is Arriving';
 
-
     });
+    Restart.restartApp();
+
   }
   cancelRideRequest()
   {
@@ -480,10 +483,50 @@ class _HomePageState extends State<HomePage>
       }
     var currentDriver=availableNearbyOnlineDriversList![0];
 
-    //send notification to this currentDriver
+    //send notification to this currentDriver - selected Driver
+    sendNotificationToDriver(currentDriver);
 
     availableNearbyOnlineDriversList!.removeAt(0);
   }
+
+  sendNotificationToDriver(OnlineNearbyDrivers currentDriver)
+  {
+    //update driver newTripStatus - assign tripID to curent driver
+    DatabaseReference currentDriverRef = FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(currentDriver.uidDriver.toString())
+        .child("newTripStatus");
+
+    currentDriverRef.set(tripRequestRef!.key);
+
+    //get current driver device recognition token
+    DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(currentDriver.uidDriver.toString())
+        .child("deviceToken");
+
+    tokenOfCurrentDriverRef.once().then((dataSnapshot)
+    {
+      if(dataSnapshot.snapshot.value != null)
+      {
+        String deviceToken = dataSnapshot.snapshot.value.toString();
+
+        // send notification
+        PushNotificationService.sendNotificationToSelectedDriver(
+            deviceToken,
+            context,
+            tripRequestRef!.key.toString()
+        );
+      }
+      else
+      {
+        return;
+      }
+    });
+  }
+
 
   @override
   Widget build(BuildContext context)

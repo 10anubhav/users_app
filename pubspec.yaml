@@ -48,6 +48,7 @@ dependencies:
   flutter_polyline_points:
   loading_animation_widget:
   flutter_geofire:
+  restart_app:
 
 dev_dependencies:
   flutter_test:
