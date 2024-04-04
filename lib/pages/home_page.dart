@@ -301,7 +301,7 @@ class _HomePageState extends State<HomePage>
       tripStatusDisplay='Driver is Arriving';
 
     });
-    Restart.restartApp();
+
 
   }
   cancelRideRequest()
@@ -491,7 +491,7 @@ class _HomePageState extends State<HomePage>
 
   sendNotificationToDriver(OnlineNearbyDrivers currentDriver)
   {
-    //update driver newTripStatus - assign tripID to curent driver
+    //update driver newTripStatus - assign tripID to current driver
     DatabaseReference currentDriverRef = FirebaseDatabase.instance
         .ref()
         .child("drivers")
@@ -524,6 +524,45 @@ class _HomePageState extends State<HomePage>
       {
         return;
       }
+
+      const oneTickPerSec = Duration(seconds: 1);
+
+      var timerCountDown = Timer.periodic(oneTickPerSec, (timer)
+      {
+
+        requestTimeoutDriver = requestTimeoutDriver - 1;
+
+        //when trip req is not req - trip req cancel-stop timer
+        if(stateOfApp != "requesting")
+          {
+            timer.cancel();
+            currentDriverRef.set("cancelled");
+            currentDriverRef.onDisconnect();
+            requestTimeoutDriver = 20;
+          }
+          //when trip req is accepted by nearest driver
+          currentDriverRef.onValue.listen((dataSnapshot)
+          {
+            if(dataSnapshot.snapshot.value.toString() == "accepted")
+              {
+                timer.cancel();
+                currentDriverRef.onDisconnect();
+                requestTimeoutDriver = 20;
+              }
+          });
+
+        //if 20 sec passed - send notification to next online driver
+        if(requestTimeoutDriver == 0)
+          {
+            currentDriverRef.set("timeout");
+            timer.cancel();
+            currentDriverRef.onDisconnect();
+            requestTimeoutDriver = 20;
+
+            //send notification to next online available driver
+            searchDriver();
+          }
+      });
     });
   }
 
