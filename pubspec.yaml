@@ -49,6 +49,7 @@ dependencies:
   loading_animation_widget:
   flutter_geofire:
   restart_app:
+  url_launcher:
 
 dev_dependencies:
   flutter_test:
