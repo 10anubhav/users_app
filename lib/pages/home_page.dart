@@ -19,12 +19,14 @@ import 'package:users_app/methods/push_notification_service.dart';
 import 'package:users_app/models/online_nearby_drivers.dart';
 import 'package:users_app/pages/search_destination_page.dart';
 import 'package:users_app/widgets/info_dialog.dart';
+import 'package:users_app/widgets/payment_dialog.dart';
 import '../appInfo/app_info.dart';
 import '../authentication/login_screen.dart';
 import '../global/global_var.dart';
 import '../methods/common_methods.dart';
 import '../models/direction_details.dart';
 import '../widgets/loading_dialog.dart';
+import 'about_page.dart';
 
 
 class HomePage extends StatefulWidget
@@ -459,7 +461,7 @@ class _HomePageState extends State<HomePage>
 
     tripRequestRef!.set(dataMap);
 
-    tripStreamSubscription = tripRequestRef!.onValue.listen((eventSnapshot)
+    tripStreamSubscription = tripRequestRef!.onValue.listen((eventSnapshot) async
     {
       if(eventSnapshot.snapshot.value == null)
       {
@@ -529,6 +531,31 @@ class _HomePageState extends State<HomePage>
           markerSet.removeWhere((element) => element.markerId.value.contains("driver"));
         });
       }
+      if(status == "ended")
+        {
+          if((eventSnapshot.snapshot.value as Map)["fareAmount"] != null)
+            {
+             double fareAmount = double.parse((eventSnapshot.snapshot.value as Map)["fareAmount"].toString());
+
+            var responseFromPaymentDialog = await showDialog(
+                 context: context,
+                 builder: (BuildContext context)=> PaymentDialog(fareAmount: fareAmount.toString()),
+             );
+            if(responseFromPaymentDialog == "paid")
+              {
+                tripRequestRef!.onDisconnect();
+                tripRequestRef = null;
+
+                tripStreamSubscription!.cancel();
+                tripStreamSubscription = null;
+
+
+                resetAppNow();
+
+                Restart.restartApp();
+              }
+            }
+        }
     });
   }
 
@@ -776,12 +803,19 @@ class _HomePageState extends State<HomePage>
               const SizedBox(height: 10,),
 
               //body
-              ListTile(
-                leading: IconButton(
-                  onPressed: (){},
-                  icon: const Icon(Icons.info, color: Colors.grey,),
+              GestureDetector(
+                onTap: ()
+                {
+                  Navigator.push(context, MaterialPageRoute(builder: (c)=>AboutPage()));
+                },
+                child: ListTile(
+                  leading: IconButton(
+                    onPressed: ()
+                    {},
+                    icon: const Icon(Icons.info, color: Colors.grey,),
+                  ),
+                  title: const Text("About", style: TextStyle(color: Colors.grey),),
                 ),
-                title: const Text("About", style: TextStyle(color: Colors.grey),),
               ),
 
               GestureDetector(
